@@ -1,24 +1,54 @@
 import streamlit as st
 import pandas as pd
+import json
 from analyzer import CodeDebtAnalyst
 
 st.set_page_config(page_title="Lineer AI Assistant", layout="wide")
 st.title("🚀 Lineer: AI Destekli Mimari ve Kod Analizi")
 
-# API Anahtarını doğrudan güvenli alandan çekiyoruz
+# 1. Notebook dosyalarını okumak için yardımcı fonksiyon (Fonksiyon tanımları en üstte olur)
+def get_code_from_ipynb(file_content):
+    try:
+        data = json.loads(file_content)
+        code_cells = [
+            "".join(cell["source"]) 
+            for cell in data["cells"] 
+            if cell["cell_type"] == "code"
+        ]
+        return "\n\n".join(code_cells)
+    except Exception:
+        return ""
+
+# API Anahtarını güvenli alandan çekiyoruz
 try:
     api_key = st.secrets["GROQ_API_KEY"]
-except:
-    st.error("API Anahtarı bulunamadı! Lütfen Streamlit Cloud Settings > Secrets kısmını kontrol edin.")
+except Exception:
+    st.error("API Anahtarı bulunamadı! Lütfen Secrets kısmını kontrol edin.")
     api_key = None
 
-uploaded_files = st.file_uploader("Python dosyalarınızı yükleyin", type="py", accept_multiple_files=True)
+# 2. Dosya yükleyici kısmında tipi genişlettik
+uploaded_files = st.file_uploader("Python (.py) veya Notebook (.ipynb) dosyalarınızı yükleyin", 
+                                  type=["py", "ipynb"], 
+                                  accept_multiple_files=True)
 
 if uploaded_files:
     all_data = []
     for f in uploaded_files:
-        content = f.read().decode("utf-8")
-        all_data.extend(CodeDebtAnalyst.analyze_source(f.name, content))
+        # Karakter bozulmalarını önlemek için güvenli okuma yapıyoruz
+        try:
+            content_raw = f.read().decode("utf-8")
+        except UnicodeDecodeError:
+            f.seek(0) # Dosya imlecini başa sar
+            content_raw = f.read().decode("latin-1")
+        
+        # 3. Dosya tipine göre içeriği işleme
+        if f.name.endswith(".ipynb"):
+            content = get_code_from_ipynb(content_raw)
+        else:
+            content = content_raw
+        
+        if content.strip():
+            all_data.extend(CodeDebtAnalyst.analyze_source(f.name, content))
     
     if all_data:
         df = pd.DataFrame(all_data)
