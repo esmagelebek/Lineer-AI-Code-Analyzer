@@ -52,27 +52,37 @@ class CodeDebtAnalyst:
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json; charset=utf-8" # UTF-8 desteğini header'a ekledik
         }
         
-        # Prompt'u biraz daha netleştirelim
+        # Karakter bozulmasını önlemek için sisteme kesin talimat ekliyoruz (System Prompt gibi)
+        turkce_talimati = (
+            "\n\nÖNEMLİ: Cevabını tamamen TÜRKÇE olarak yaz. "
+            "Türkçe karakterleri (ğ, ü, ş, ı, ö, ç) kesinlikle doğru kullan ve araya yabancı dillerden (Çince vb.) "
+            "karakterler karıştırma. Yanıtın tamamen UTF-8 formatında olsun."
+        )
+
         if mode == "Dosya Genel":
-            prompt = f"Bir kıdemli yazılım geliştirici gibi davran. Aşağıdaki Python kodunu bütünsel olarak incele; mimari, isimlendirme ve temiz kod prensipleri açısından önerilerini madde madde yaz:\n\n{code}"
+            prompt = f"Bir kıdemli yazılım geliştirici gibi davran. Aşağıdaki Python kodunu bütünsel olarak incele; mimari, isimlendirme ve temiz kod prensipleri açısından önerilerini madde madde yaz:{turkce_talimati}\n\nKod:\n{code}"
         else:
-            prompt = f"Aşağıdaki Python fonksiyonunu refactor et, daha okunabilir ve performanslı bir versiyonunu yaz:\n\n{code}"
+            prompt = f"Aşağıdaki Python fonksiyonunu refactor et, daha okunabilir ve performanslı bir versiyonunu yaz. Önerilerini Türkçe açıkla:{turkce_talimati}\n\nKod:\n{code}"
         
         data = {
-            "model": "llama-3.3-70b-versatile", # Daha güncel ve stabil bir model ismi
-            "messages": [{"role": "user", "content": prompt}]
+            "model": "llama-3.3-70b-versatile",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.5 # Daha tutarlı yanıtlar için yaratıcılığı biraz düşürdük
         }
         
         try:
             response = requests.post(url, headers=headers, json=data)
+            # Response içeriğinin UTF-8 olduğunu zorunlu kılıyoruz
+            response.encoding = 'utf-8' 
             response_json = response.json()
             
-            # Hata ayıklama: Eğer 'choices' yoksa API'den gelen asıl mesajı göster
             if 'choices' in response_json:
-                return response_json['choices'][0]['message']['content']
+                content = response_json['choices'][0]['message']['content']
+                # Bazı durumlarda metin içinde kalan escape karakterlerini temizlemek için:
+                return content.encode('utf-8').decode('utf-8')
             else:
                 error_msg = response_json.get('error', {}).get('message', 'Bilinmeyen API Hatası')
                 return f"⚠️ Groq API Hatası: {error_msg}"
