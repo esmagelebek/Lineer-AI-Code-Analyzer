@@ -7,7 +7,7 @@ st.title("🚀 Lineer: AI Destekli Mimari ve Kod Analizi")
 
 with st.sidebar:
     st.header("Ayarlar")
-    api_key = st.text_input("Groq API Key", type="password")
+    api_key = st.secrets["GROQ_API_KEY"]
 
 uploaded_files = st.file_uploader("Python dosyalarınızı yükleyin", type="py", accept_multiple_files=True)
 
