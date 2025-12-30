@@ -1,0 +1,4 @@
+radon==6.0.1
+lizard==1.17.10
+pandas>=2.0.0
+streamlit>=1.35.0
