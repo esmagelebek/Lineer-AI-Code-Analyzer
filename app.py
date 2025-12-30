@@ -5,9 +5,12 @@ from analyzer import CodeDebtAnalyst
 st.set_page_config(page_title="Lineer AI Assistant", layout="wide")
 st.title("🚀 Lineer: AI Destekli Mimari ve Kod Analizi")
 
-with st.sidebar:
-    st.header("Ayarlar")
+# API Anahtarını doğrudan güvenli alandan çekiyoruz
+try:
     api_key = st.secrets["GROQ_API_KEY"]
+except:
+    st.error("API Anahtarı bulunamadı! Lütfen Streamlit Cloud Settings > Secrets kısmını kontrol edin.")
+    api_key = None
 
 uploaded_files = st.file_uploader("Python dosyalarınızı yükleyin", type="py", accept_multiple_files=True)
 
@@ -25,7 +28,6 @@ if uploaded_files:
         st.divider()
         st.subheader("🤖 AI Mimari & Kod Önerisi")
         
-        # Seçim: Dosya mı yoksa tek bir fonksiyon mu?
         selection = st.selectbox("İncelemek istediğiniz birimi seçin:", df['İsim'].unique())
         selected_row = df[df['İsim'] == selection].iloc[0]
         
@@ -45,4 +47,4 @@ if uploaded_files:
                         )
                         st.markdown(suggestion)
                 else:
-                    st.warning("Lütfen sidebar'dan API anahtarını girin.")
+                    st.warning("API anahtarı sistemde tanımlı değil.")
